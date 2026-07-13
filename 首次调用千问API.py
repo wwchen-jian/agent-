@@ -1,0 +1,20 @@
+import os
+from openai import OpenAI
+try:
+    client = OpenAI(
+        api_key = os.environ['DASHSCOPE_API_KEY'],
+        base_url = "https://ws-0tl8shwkh4jp55gw.cn-beijing.maas.aliyuncs.com/compatible-mode/v1",
+    )
+    competition = client.chat.completions.create(
+        model = 'qwen-plus',
+        messages=[
+            {'role': 'system', 'content': 'You are a helpful assistant.'},
+            {'role': 'user', 'content': '你是谁?'}
+        ]
+    )
+    print(competition.choices[0].message.content)
+except Exception as e:
+    print(f"错误信息:{e}")
+
+
+
