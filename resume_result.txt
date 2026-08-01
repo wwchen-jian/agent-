@@ -1,0 +1,10 @@
+{
+  "name": "王一",
+  "education": "计算机科学与技术专业",
+  "skill": [
+    "python",
+    "RAG",
+    "langchain"
+  ],
+  "intention": "大模型开发实习"
+}
