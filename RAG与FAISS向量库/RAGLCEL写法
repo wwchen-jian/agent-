@@ -1,0 +1,51 @@
+from langchain_core.prompts import ChatPromptTemplate
+from langchain_core.runnables import RunnablePassthrough
+from langchain_community.vectorstores import FAISS
+from langchain_core.output_parsers import StrOutputParser
+from langchain_community.document_loaders import TextLoader
+from langchain_text_splitters import RecursiveCharacterTextSplitter
+from langchain_openai import ChatOpenAI,OpenAIEmbeddings
+from dotenv import load_dotenv
+import os
+
+from tenacity import retry_if_exception
+
+load_dotenv()
+
+llm = ChatOpenAI(
+    model = 'qwen-plus',
+    api_key = os.getenv('DASHSCOPE_API_KEY'),
+    base_url ="https://dashscope.aliyuncs.com/compatible-mode/v1",
+    timeout=60.0
+)
+
+embedding = OpenAIEmbeddings(
+    model = 'text-embedding-v1',
+    api_key = os.getenv('DASHSCOPE_API_KEY'),
+    base_url='https://dashscope.aliyuncs.com/compatible-mode/v1',
+    check_embedding_ctx_length=False,
+    timeout=60.0
+)
+
+loader = TextLoader('doc.txt',encoding='utf-8')
+splitter = RecursiveCharacterTextSplitter(chunk_size = 100,chunk_overlap = 30)
+docs = splitter.split_documents(loader.load())
+db = FAISS.from_documents(docs,embedding)
+retriever = db.as_retriever(search_kwargs={"k": 3})
+
+prompt = ChatPromptTemplate.from_template(
+    """
+        请根据以下资料回答问题,资料无相关问题则回复,根据现有资料无法回答
+        参考资料:{context}
+        用户问题:{question}
+    """
+)
+
+def format_docs(docs):
+    return '\n\n'.join(doc.page_content for doc in docs)
+
+rag_chain = ({'context':retriever|format_docs,'question':RunnablePassthrough()}|prompt|llm|StrOutputParser())
+
+#print(format_docs(docs))
+ans = rag_chain.invoke("请你概述文档中的内容")
+print(ans)
